@@ -299,7 +299,7 @@ def PlotOpticalThroughput(wl,thrpt,err,title):
     
     plt.figure(figsize=(10,6))
     plt.title(title)
-    plt.errorbar(wl,thrpt,yerr=err,fmt='o',color='blue',ecolor='red')
+    plt.errorbar(wl,thrpt,yerr=err,fmt='-',color='blue',ecolor='red')
     
     plt.xlabel('$\lambda$ (nm)' )
     plt.ylabel('total throughput (mag)')
