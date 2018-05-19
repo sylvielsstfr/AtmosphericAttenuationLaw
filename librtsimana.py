@@ -29,7 +29,18 @@ WLMAX=1100. # Minimum wavelength : PySynPhot works with Angstrom
 WL=np.arange(WLMIN,WLMAX,1) # Array of wavelength in Angstrom
 NBWL=len(WL)
 
-
+#----------------------------------------------------------
+def Extrapolate(X,Y,YMIN=0,YMAX=1):
+    # extrapolate X and Y
+    
+    X=np.insert(X,0,X[0]-1)
+    X=np.insert(X,0,WL[0])
+    X=np.append(X,WL[-1])
+ 
+    Y=np.insert(Y,0,YMIN)
+    Y=np.insert(Y,0,YMIN)
+    Y=np.append(Y,YMAX)
+    return X,Y
 #----------------------------------------------------------------------------------------
 def smooth(x,window_len=11,window='hanning'):
     """smooth the data using a window with requested size.
@@ -154,7 +165,7 @@ def FitBougherLine(theX,theY,theSigY):
         
 
 #--------------------------------------------------------------------------------------
-def FitAttenuationSmoothBin(airmasses,transmissions,thetitle,ZMIN=0,ZMAX=0,Wwidth=11,Bwidth=10,Mag=True):
+def FitAttenuationSmoothBin(airmasses,transmissions,thetitle,ZMIN=0,ZMAX=0,Wwidth=11,Bwidth=10,Mag=True,showFlag=True):
     """
     
     FitAttenuationSmoothBin(airmasses,transmissions,Wwidth=21,Bwidth=20,Mag=True)
@@ -215,10 +226,9 @@ def FitAttenuationSmoothBin(airmasses,transmissions,thetitle,ZMIN=0,ZMAX=0,Wwidt
     all_Y=[]
     all_EY=[]
     
-    
-    
-    
-    plt.figure(figsize=(18,10))
+    if showFlag:
+        plt.figure(figsize=(18,10))
+  
     # loop on wavelength indexes
     for idx_wl in np.arange(2,len(WL)+2,Bwidth): 
         if WL[idx_wl-2]<WLMIN:
@@ -249,48 +259,53 @@ def FitAttenuationSmoothBin(airmasses,transmissions,thetitle,ZMIN=0,ZMAX=0,Wwidt
         Y2=Y0+FluxAverErr
         
         
-        if not Mag:        
-            plt.fill_between(airmasses,y1=Y1,y2=Y2, where=Y1>0 ,color='grey', alpha=0.3 )        
-            plt.yscale( "log" )
+        if not Mag:  
+            if showFlag:
+                plt.fill_between(airmasses,y1=Y1,y2=Y2, where=Y1>0 ,color='grey', alpha=0.3 )        
+                plt.yscale( "log" )
         
-            # plot the attenuation wrt airmass
-            plt.semilogy(airmasses,Y0,'o-',c=colorVal,label=thelabel)
+                # plot the attenuation wrt airmass
+                plt.semilogy(airmasses,Y0,'o-',c=colorVal,label=thelabel)
         else:
             
             newY0=2.5*np.log10(Y0)
             newY1=np.zeros(len(Y0))
             newY2=np.zeros(len(Y0))
             
-            plt.fill_between(airmasses,y1=newY1,y2=newY2, where=Y1>0 ,color='grey', alpha=0.3 )        
+            if showFlag:
+                plt.fill_between(airmasses,y1=newY1,y2=newY2, where=Y1>0 ,color='grey', alpha=0.3 )        
             
             # plot the attenuation wrt airmass
-            plt.plot(airmasses,newY0,'o-',c=colorVal,label=thelabel)
+            if showFlag:
+                plt.plot(airmasses,newY0,'o-',c=colorVal,label=thelabel)
             
             Xfit,Yfit,YFitErr=FitBougherLine(airmasses,newY0,theSigY=(newY2-newY1)/2.)
-            plt.plot(Xfit,Yfit,'-',c=colorVal)
-            plt.plot(Xfit,Yfit+YFitErr,':',c=colorVal)
-            plt.plot(Xfit,Yfit-YFitErr,':',c=colorVal)
+            
+            if showFlag:
+                plt.plot(Xfit,Yfit,'-',c=colorVal)
+                plt.plot(Xfit,Yfit+YFitErr,':',c=colorVal)
+                plt.plot(Xfit,Yfit-YFitErr,':',c=colorVal)
             
             all_WL.append(np.average(WLBins)) # average wavelength in that bin
             all_Y.append(Yfit[0])             # Y for first airmass z=0
             all_EY.append(YFitErr[0])         # EY extracpolated for that airmass z=0
             
             
-    
-    plt.grid(b=True, which='major', color='black', linestyle='-')
-    plt.grid(b=True, which='minor', color='red', linestyle='--')
-    plt.title(thetitle)
-    plt.xlabel("airmass")   
-    if not Mag:  
-        plt.ylabel("Attenuation") 
-    else:
-        plt.ylabel("Attenuation (mag)") 
-    plt.legend(loc='right', prop={'size':10})  
+    if showFlag:
+        plt.grid(b=True, which='major', color='black', linestyle='-')
+        plt.grid(b=True, which='minor', color='red', linestyle='--')
+        plt.title(thetitle)
+        plt.xlabel("airmass")   
+        if not Mag:  
+            plt.ylabel("Attenuation") 
+        else:
+            plt.ylabel("Attenuation (mag)") 
+        plt.legend(loc='right', prop={'size':10})  
     
    
-    plt.xlim(0.,AIRMASS_MAX*1.3)
+        plt.xlim(0.,AIRMASS_MAX*1.3)
     
-    plt.show() 
+        plt.show() 
     
     return np.array(all_WL),np.array(all_Y),np.array(all_EY)
     
@@ -307,4 +322,86 @@ def PlotOpticalThroughput(wl,thrpt,err,title):
     #plt.grid(b=True, which='minor', color='red', linestyle='--')
     plt.grid(b=True, which='both')
     plt.show()
+#--------------------------------------------------------------------------------------    
+def GenerateBouguerIntercept(airmasses,all_transmission,sigma_wl=10,nb_realizations=20):
+    SIGMAWL=sigma_wl
+    NREALIZATIONS=nb_realizations
     
+    NBOBS=all_transmission.shape[1]
+    NBWLBINS=all_transmission.shape[0]
+    
+    all_wl=[]
+    all_y=[]
+    all_err=[]
+
+    for run in np.arange(NREALIZATIONS):    
+        delta_wl = np.random.normal(0, SIGMAWL,NBOBS)
+        new_transmission=np.zeros(all_transmission.shape)
+        # loop on all obs of a realization
+        for obs in np.arange(NBOBS):
+            wl = WL+delta_wl[obs]  # jitter in wavelength
+            atm = all_transmission[:,obs]  
+            wl,atm=Extrapolate(wl,atm)
+            func=interp1d(wl,atm,kind='linear') # interpolate the jittered transmission
+            transm=func(WL)
+            new_transmission[:,obs]=transm #fills the new transmission
+        # Fit Bouguer lines
+        thetitle="many realizations"
+        x1,y1,err1=FitAttenuationSmoothBin(airmasses,new_transmission,thetitle,ZMIN=300.,ZMAX=600.,Wwidth=11,Bwidth=10,Mag=True,showFlag=False)
+        x2,y2,err2=FitAttenuationSmoothBin(airmasses,new_transmission,thetitle,ZMIN=600.,ZMAX=1000.,Wwidth=11,Bwidth=10,Mag=True,showFlag=False) 
+        wl=np.concatenate((x1,x2))
+        y=np.concatenate((y1,y2))
+        err=np.zeros(len(y))
+        all_wl.append(wl)
+        all_y.append(y)
+        all_err.append(err)
+    
+    return all_wl,all_y,all_err
+#-------------------------------------------------------------------------------------------
+def PlotBouguerInterceptError(all_wl,all_y,thetitle):
+    
+    plt.figure(figsize=(10,6))
+    
+    
+    NREALIZATIONS=len(all_wl)
+    for run in np.arange(NREALIZATIONS):  
+        wl=all_wl[run]
+        y=all_y[run]
+        plt.plot(wl,y)
+        
+    plt.grid(True)
+    plt.ylim(-0.1,.1)
+    plt.xlim(350.,1000.)
+    plt.xlabel("$\lambda$ (nm)")
+    plt.ylabel("intercept error (mag)")
+    plt.title(thetitle)
+    plt.show()
+    
+#-------------------------------------------------------------------------------------------
+def PlotHist2dBouguerInterceptError(all_wl,all_y,thetitle):
+    
+    plt.figure(figsize=(10,6))
+    
+    all_wl=np.array(all_wl)
+    all_y=np.array(all_y)
+    
+    all_wl.flatten()
+    all_y.flatten()
+    
+    xedges = WL
+    yedges = np.linspace(-1.,1.,20)
+    
+    H, xedges, yedges=np.histogram2d(all_wl, all_y, bins=(xedges, yedges))
+    im = plt.imshow(H, interpolation='nearest', origin='low',
+                    extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
+    plt.show()
+    
+    plt.figure(figsize=(10,6))
+    X, Y = np.meshgrid(xedges, yedges)
+    plt.pcolormesh(X, Y, H)
+        
+
+    plt.xlabel("$\lambda$ (nm)")
+    plt.ylabel("intercept error (mag)")
+    plt.title(thetitle)
+    plt.show()
