@@ -380,28 +380,68 @@ def PlotBouguerInterceptError(all_wl,all_y,thetitle):
 #-------------------------------------------------------------------------------------------
 def PlotHist2dBouguerInterceptError(all_wl,all_y,thetitle):
     
-    plt.figure(figsize=(10,6))
+  
     
     all_wl=np.array(all_wl)
     all_y=np.array(all_y)
     
-    all_wl.flatten()
-    all_y.flatten()
+    all_wl=all_wl.flatten()
+    all_y=all_y.flatten()
     
-    xedges = WL
-    yedges = np.linspace(-1.,1.,20)
+    #remove nan
+    bad_indexes=np.where(np.isnan(all_y))[0]
     
-    H, xedges, yedges=np.histogram2d(all_wl, all_y, bins=(xedges, yedges))
-    im = plt.imshow(H, interpolation='nearest', origin='low',
-                    extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
-    plt.show()
+    all_wl=np.delete(all_wl,bad_indexes)
+    all_y=np.delete(all_y,bad_indexes)
     
-    plt.figure(figsize=(10,6))
-    X, Y = np.meshgrid(xedges, yedges)
-    plt.pcolormesh(X, Y, H)
-        
+    #boundaries
+    xedges = np.arange(350.,1000.,10) 
+    yedges = np.linspace(-0.1,0.1,num=50)
+    
+    # select indexes   
+    good_indexes=np.where(np.logical_and(np.logical_and(all_wl>=xedges[0],all_wl<xedges[-1]),
+                                         np.logical_and(all_y>=yedges[0], all_y<yedges[-1])))[0]
+    
+    all_wl=all_wl[good_indexes]
+    all_y=all_y[good_indexes]
+    
+   
+    #--------------------- Fill the histogram--------------------------------
+    H, xedges, yedges=np.histogram2d(all_wl,all_y,bins=(xedges, yedges), normed=True )
 
+    
+    #----------------------Figure 1: with imshow()  --------------------------------------
+    plt.figure(figsize=(10,6))
+    im = plt.imshow(H.T, interpolation='nearest', origin='low',
+                    extent=(xedges[0],xedges[-1],yedges[0],yedges[-1]),
+                    vmin=H.min(),vmax=H.max(),cmap="jet",
+                    aspect='auto')
+    #contours = plt.contour(yedges,xedges,  H.T, 3, colors='yellow')
+    #plt.clabel(contours, inline=True, fontsize=8)
+    #im = plt.imshow(H.T, interpolation='nearest', origin='low',vmin=H.min(),vmax=H.max(),cmap="jet")
+    #plt.axes().set_aspect('equal', 'datalim')
+    cbar = plt.colorbar()
+    cbar.set_label('Probability', rotation=270)
+    plt.grid(True)
+    plt.ylim(-0.1,.1)
+    plt.xlim(350.,1000.)
     plt.xlabel("$\lambda$ (nm)")
     plt.ylabel("intercept error (mag)")
     plt.title(thetitle)
     plt.show()
+    #----------------------Figure 2: with pcolormesh() --------------------------------------
+    plt.figure(figsize=(10,6))
+    X, Y = np.meshgrid(xedges, yedges)
+    plt.pcolormesh(X, Y, H.T,vmin=H.min(),vmax=H.max(),cmap="jet")
+    cbar = plt.colorbar()
+    cbar.set_label('Probability', rotation=270)
+    plt.grid(True)
+    plt.ylim(-0.1,.1)
+    plt.xlim(350.,1000.)
+    plt.xlabel("$\lambda$ (nm)")
+    plt.ylabel("intercept error (mag)")
+    plt.title(thetitle)
+    plt.show()
+     #------------------------------------------------------------
+    
+    
