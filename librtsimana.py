@@ -376,7 +376,8 @@ def PlotBouguerInterceptError(all_wl,all_y,thetitle):
     plt.ylabel("intercept error (mag)")
     plt.title(thetitle)
     plt.show()
-    
+
+from matplotlib import colors, ticker, cm    
 #-------------------------------------------------------------------------------------------
 def PlotHist2dBouguerInterceptError(all_wl,all_y,thetitle):
     
@@ -442,6 +443,23 @@ def PlotHist2dBouguerInterceptError(all_wl,all_y,thetitle):
     plt.ylabel("intercept error (mag)")
     plt.title(thetitle)
     plt.show()
-     #------------------------------------------------------------
+    #----------------------Figure 3: contour --------------------------------------
+   
+    plt.figure(figsize=(10,6)) 
+    X, Y = np.meshgrid(xedges[:-1], yedges[:-1])
+    #plt.contour(X,Y,H.T,10,colors="white")
+    cs=plt.contourf(X,Y,H.T,100,vmin=H.min(),vmax=H.max(),cmap="jet")
+    #cs=plt.contourf(X,Y,H.T,10,norm=colors.LogNorm(),cmap="jet")
+    cbar = plt.colorbar(cs)
+    cbar.set_label('Probability', rotation=270)
+    plt.grid(True)
+    plt.ylim(-0.05,.05)
+    plt.xlim(350.,1000.)
+    plt.xlabel("$\lambda$ (nm)")
+    plt.ylabel("intercept error (mag)")
+    plt.title(thetitle)
+    plt.show()
+    
+#-----------------------------------------------------------------------------------
     
     
