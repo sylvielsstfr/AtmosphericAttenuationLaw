@@ -16,7 +16,7 @@ from scipy import interpolate
 from scipy.interpolate import interp1d
 
 from scipy.optimize import curve_fit
-
+from matplotlib import colors, ticker, cm    
 
 
 
@@ -323,7 +323,51 @@ def PlotOpticalThroughput(wl,thrpt,err,title):
     plt.grid(b=True, which='both')
     plt.show()
 #--------------------------------------------------------------------------------------    
-def GenerateBouguerIntercept(airmasses,all_transmission,sigma_wl=10,nb_realizations=20):
+def GenerateBouguerIntercept(airmasses,all_transmission,all_sigma_wl,nb_realizations=20):
+    
+    
+    NREALIZATIONS=nb_realizations
+    NBOBS=all_transmission.shape[1]
+   
+    
+    assert(len(all_sigma_wl)==nb_realizations), "len(all_sigma_wl)==nb_realisations"
+    #len(all_sigma_wl),nb_realisations
+    
+   
+    
+    NBWLBINS=all_transmission.shape[0]
+    
+    all_wl=[]
+    all_y=[]
+    all_err=[]
+
+    for run in np.arange(NREALIZATIONS): 
+        SIGMAWL=all_sigma_wl[run]  # for each realisation get the sigma_wl
+        delta_wl = np.random.normal(0, SIGMAWL,NBOBS)
+        new_transmission=np.zeros(all_transmission.shape)
+        # loop on all obs of a realization
+        for obs in np.arange(NBOBS):
+            wl = WL+delta_wl[obs]  # jitter in wavelength
+            atm = all_transmission[:,obs]  
+            wl,atm=Extrapolate(wl,atm)
+            func=interp1d(wl,atm,kind='linear') # interpolate the jittered transmission
+            transm=func(WL)
+            new_transmission[:,obs]=transm #fills the new transmission
+        # Fit Bouguer lines
+        thetitle="many realizations"
+        x1,y1,err1=FitAttenuationSmoothBin(airmasses,new_transmission,thetitle,ZMIN=300.,ZMAX=600.,Wwidth=11,Bwidth=10,Mag=True,showFlag=False)
+        x2,y2,err2=FitAttenuationSmoothBin(airmasses,new_transmission,thetitle,ZMIN=600.,ZMAX=1000.,Wwidth=11,Bwidth=10,Mag=True,showFlag=False) 
+        wl=np.concatenate((x1,x2))
+        y=np.concatenate((y1,y2))
+        err=np.zeros(len(y))
+        all_wl.append(wl)
+        all_y.append(y)
+        all_err.append(err)
+    
+    return all_wl,all_y,all_err
+#-------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------    
+def GenerateBouguerInterceptRandom(airmasses,all_transmission,sigma_wl=10,nb_realizations=20):
     SIGMAWL=sigma_wl
     NREALIZATIONS=nb_realizations
     
@@ -358,28 +402,53 @@ def GenerateBouguerIntercept(airmasses,all_transmission,sigma_wl=10,nb_realizati
     
     return all_wl,all_y,all_err
 #-------------------------------------------------------------------------------------------
-def PlotBouguerInterceptError(all_wl,all_y,thetitle):
+def PlotBouguerInterceptError(all_wl,all_y,thetitle,sigma_wl=None):
     
     plt.figure(figsize=(10,6))
-    
-    
     NREALIZATIONS=len(all_wl)
-    for run in np.arange(NREALIZATIONS):  
-        wl=all_wl[run]
-        y=all_y[run]
-        plt.plot(wl,y)
+      
+      
+    if sigma_wl==None:   
+        for run in np.arange(NREALIZATIONS):  
+            wl=all_wl[run]
+            y=all_y[run]
+            plt.plot(wl,y)
         
-    plt.grid(True)
-    plt.ylim(-0.1,.1)
-    plt.xlim(350.,1000.)
-    plt.xlabel("$\lambda$ (nm)")
-    plt.ylabel("intercept error (mag)")
-    plt.title(thetitle)
-    plt.show()
+        plt.grid(True)
+        plt.ylim(-0.1,.1)
+        plt.xlim(350.,1000.)
+        plt.xlabel("$\lambda$ (nm)")
+        plt.ylabel("intercept error (mag)")
+        plt.title(thetitle)
+        plt.show()
+    else:
+        
+         jet =plt.get_cmap('jet')    
+         cNorm  = colors.Normalize(vmin=0, vmax=NREALIZATIONS)
+         scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet)
+        
+         for run in np.arange(NREALIZATIONS):  
+            wl=all_wl[run]
+            y=all_y[run]
+            
+            colorVal = scalarMap.to_rgba(run,alpha=1)        
+            thelabel="$\sigma(wl)$={} nm".format(sigma_wl[run])
+            
+            plt.plot(wl,y,color=colorVal,label=thelabel)
+        
+         plt.grid(True)
+         plt.ylim(-0.1,.1)
+         plt.xlim(350.,1000.)
+         plt.xlabel("$\lambda$ (nm)")
+         plt.ylabel("intercept error (mag)")
+         plt.title(thetitle)
+         plt.legend()
+         plt.show()
+        
 
-from matplotlib import colors, ticker, cm    
+
 #-------------------------------------------------------------------------------------------
-def PlotHist2dBouguerInterceptError(all_wl,all_y,thetitle):
+def PlotHist2dBouguerInterceptErrorRandom(all_wl,all_y,thetitle):
     
   
     
