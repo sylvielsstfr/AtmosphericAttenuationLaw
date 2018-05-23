@@ -450,7 +450,6 @@ def PlotBouguerInterceptError(all_wl,all_y,thetitle,sigma_wl=None):
 #-------------------------------------------------------------------------------------------
 def PlotHist2dBouguerInterceptErrorRandom(all_wl,all_y,thetitle):
     
-  
     
     all_wl=np.array(all_wl)
     all_y=np.array(all_y)
@@ -531,4 +530,88 @@ def PlotHist2dBouguerInterceptErrorRandom(all_wl,all_y,thetitle):
     
 #-----------------------------------------------------------------------------------
     
+#-------------------------------------------------------------------------------------------
+def PlotContourdBouguerInterceptErrorRandom(all_wl,all_y,thetitle):
     
+    
+    all_wl=np.array(all_wl)
+    all_y=np.array(all_y)
+    
+    all_wl=all_wl.flatten()
+    all_y=all_y.flatten()
+    
+    #remove nan
+    bad_indexes=np.where(np.isnan(all_y))[0]
+    
+    all_wl=np.delete(all_wl,bad_indexes)
+    all_y=np.delete(all_y,bad_indexes)
+    
+    NBY=50
+    WLSTEP=10
+    
+    #boundaries
+    xedges = np.arange(350.,1000.,WLSTEP) 
+    yedges = np.linspace(-0.1,0.1,num=NBY)
+    
+    # select indexes   
+    good_indexes=np.where(np.logical_and(np.logical_and(all_wl>=xedges[0],all_wl<xedges[-1]),
+                                         np.logical_and(all_y>=yedges[0], all_y<yedges[-1])))[0]
+    
+    all_wl=all_wl[good_indexes]
+    all_y=all_y[good_indexes]
+    
+   
+    #--------------------- Fill the histogram-----------------------------------------
+    H, xedges, yedges=np.histogram2d(all_wl,all_y,bins=(xedges, yedges), normed=True )
+    
+    H1=H[:,0:NBY/2]
+    
+    H2=H[:,NBY/2:NBY-1]
+    
+    # cumulative sum
+    H3=np.cumsum(H1,axis=1)
+    
+    #top
+    H2flip=np.flip(H2,axis=1)
+    #cumulative 
+    H4flip=np.cumsum(H2flip,axis=1)
+    
+    
+    # restore orientation
+    H4=np.flip(H4flip,axis=1)
+    
+    
+    # put again in two pieces
+    Hcumsum=np.concatenate((H3,H4),axis=1)
+     
+    
+    # normalize
+    Hcumsum_max=np.max(Hcumsum,axis=1)
+    Hcumsum_norm=np.copy(Hcumsum)
+    
+    for idx in np.arange(len(Hcumsum_max)):
+        Hcumsum_norm[idx,:]=Hcumsum_norm[idx,:]/Hcumsum_max[idx]
+    
+    
+    
+    
+    #----------------------Figure : contour --------------------------------------
+   
+    plt.figure(figsize=(10,6)) 
+    X, Y = np.meshgrid(xedges[:-1], yedges[:-1])
+    plt.contour(X,Y,Hcumsum_norm.T,5,colors="white")
+    cs=plt.contourf(X,Y,Hcumsum_norm.T,100,vmin=Hcumsum_norm.min(),vmax=Hcumsum_norm.max(),cmap="jet")
+    #cs=plt.contourf(X,Y,H.T,10,norm=colors.LogNorm(),cmap="jet")
+    cbar = plt.colorbar(cs)
+    cbar.set_label('Probability', rotation=270)
+    plt.grid(True)
+    plt.ylim(-0.05,.05)
+    plt.xlim(350.,1000.)
+    plt.xlabel("$\lambda$ (nm)")
+    plt.ylabel("intercept error (mag)")
+    plt.title(thetitle)
+    plt.show()
+    
+    
+    
+#--------------------------------------------------------------------------------------
