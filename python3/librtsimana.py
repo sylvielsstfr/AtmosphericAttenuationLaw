@@ -100,9 +100,9 @@ def smooth(x,window_len=11,window='hanning'):
     y=np.convolve(w/w.sum(),s,mode='valid')
     #return y
     if len(x)%2==0: # even case
-        return y[(window_len/2):-(window_len/2)] 
+        return y[(int(window_len/2)):-int(window_len/2)] 
     else:           #odd case
-        return y[(window_len/2-1):-(window_len/2)] 
+        return y[int(window_len/2-1):-int(window_len/2)] 
     
 #--------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------    
