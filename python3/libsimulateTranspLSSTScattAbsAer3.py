@@ -123,6 +123,7 @@ def ProcessSimulation(airmass_num,pwv_num,oz_num):
 
     # Set up type of run
     runtype='clearsky' #'no_scattering' #aerosol_special #aerosol_default# #'clearsky'#     
+    
     if Proc == 'sc':
         runtype='no_absorption'
         outtext='no_absorption'
@@ -141,6 +142,10 @@ def ProcessSimulation(airmass_num,pwv_num,oz_num):
     else:
         runtype=='clearsky'
         outtext='clearsky'
+        
+        
+    # Set up type of run
+    runtype='no_absorption' #'no_scattering' #aerosol_special #aerosol_default# #'clearsky'#     
 
 #   Selection of RTE equation solver        
     if Rte == 'pp': # parallel plan
@@ -233,7 +238,7 @@ def ProcessSimulation(airmass_num,pwv_num,oz_num):
         BaseFilename=BaseFilename_part1+atmkey+'_'+Proc+'_'+Mod+'_z'+str(amfileindex)+'_'+WVXX+str(wvfileindex) +'_'+OZXX+str(ozfileindex)                   
                     
         verbose=True
-        uvspec = UVspec.UVspec()
+        uvspec = UVspec3.UVspec()
         uvspec.inp["data_files_path"]  =  libradtranpath+'data'
                 
         uvspec.inp["atmosphere_file"] = libradtranpath+'data/atmmod/'+atmosphere+'.dat'
@@ -265,8 +270,8 @@ def ProcessSimulation(airmass_num,pwv_num,oz_num):
             uvspec.inp["no_absorption"] = ''
      
         # set up the ozone value               
-        uvspec.inp["mol_modify"] = pwv_str
-        uvspec.inp["mol_modify2"] = oz_str
+        #uvspec.inp["mol_modify"] = pwv_str
+        #uvspec.inp["mol_modify2"] = oz_str
                     
                 
         uvspec.inp["output_user"] = 'lambda edir'
@@ -345,6 +350,9 @@ def ProcessSimulationaer(airmass_num,pwv_num,oz_num,wl0_num,tau0_num):
         runtype=='clearsky'
         outtext='clearsky'
 
+        
+    runtype='aerosol_special' #'no_scattering' #aerosol_special #aerosol_default# #'clearsky'#     
+    
 #   Selection of RTE equation solver        
     if Rte == 'pp': # parallel plan
         rte_eq='disort'
@@ -553,6 +561,8 @@ def ProcessSimulationaer2(airmass_num,pwv_num,oz_num,alpha_num,beta_num):
     else:
         runtype=='clearsky'
         outtext='clearsky'
+        
+    runtype='aerosol_special' #'no_scattering' #aerosol_special #aerosol_default# #'clearsky'#     
 
 #   Selection of RTE equation solver        
     if Rte == 'pp': # parallel plan
